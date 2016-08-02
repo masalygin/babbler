@@ -15,6 +15,7 @@ export default class Babbler {
     Babbler._instancesCounter++;
 
     addEventListener('message', (e) => {
+      console.log('e');
       if (!this._isValid(e)) {
         return;
       }
