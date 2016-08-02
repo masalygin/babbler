@@ -1,5 +1,56 @@
 import punycode from 'punycode';
-import EventEmitter from 'events';
+
+
+export class SimpleEventEmitter {
+
+  _map = new Map();
+
+  listeners(name) {
+    let listeners = this._map.get(name);
+    if (!listeners) {
+      listeners = new Set();
+      this._map.set(name, listeners);
+    }
+    return listeners;
+  }
+
+
+  on(name, fn) {
+    this.listeners(name).add(fn);
+  }
+
+
+  off(name, fn) {
+    if (typeof fn !== 'undefined') {
+      this.listeners(name).delete(fn);
+    } else {
+      this._map.delete(name);
+    }
+  }
+
+
+  once(name, fn) {
+    let listeners = this.listeners(name);
+
+    function wrapped(...args) {
+      this::fn(...args);
+      listeners.delete(wrapped);
+    }
+
+    listeners.add(wrapped);
+  }
+
+
+  emit(name, ...params) {
+    this.emitWithContext(name, this, ...params);
+  }
+
+
+  emitWithContext(name, context, ...params) {
+    this.listeners(name).forEach((fn) => context::fn(...params));
+  }
+
+}
 
 
 export default class Babbler {
@@ -9,7 +60,7 @@ export default class Babbler {
   constructor(frame, origin) {
     this._frame = frame;
     this._origin = origin;
-    this._emitter = new EventEmitter();
+    this._emitter = new SimpleEventEmitter();
     this._messagesCount = 0;
     this._instanceNumber = Babbler._instancesCounter;
     Babbler._instancesCounter++;
@@ -19,12 +70,20 @@ export default class Babbler {
         return;
       }
       let {commandName, params, sign, type} = e.data;
-      if (type == 'fetch') {
-        let done = (...params) => {
-          this.emit(sign, ...params);
+
+      if (type == 'cmd') {
+        let resolve = (...params) => {
+          this.send({commandName: sign, params, type: 'resolve'});
         };
-        params = [done, ...params];
+
+        let reject = (...params) => {
+          this.send({commandName: sign, params, type: 'reject'});
+        };
+
+        this._emitter.emitWithContext(commandName, {resolve, reject}, ...params);
+        return;
       }
+
       this._emitter.emit(commandName, ...params);
     });
 
@@ -48,7 +107,7 @@ export default class Babbler {
     let sign = this._getSign();
     return new Promise((resolve) => {
       this.once(sign, (params) => resolve(params));
-      this.send({commandName, params, sign, type: 'fetch'});
+      this.send({commandName, params, sign, type: 'cmd'});
     });
   }
 
@@ -60,7 +119,7 @@ export default class Babbler {
 
 
   off(commandName, fn) {
-    this._emitter.removeListener(commandName, fn);
+    this._emitter.off(commandName, fn);
     return this;
   }
 
