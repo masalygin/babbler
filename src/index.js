@@ -15,7 +15,6 @@ export default class Babbler {
     Babbler._instancesCounter++;
 
     addEventListener('message', (e) => {
-      console.log('e');
       if (!this._isValid(e)) {
         return;
       }
@@ -23,7 +22,7 @@ export default class Babbler {
       if (type == 'fetch') {
         let done = (...params) => {
           this.emit(sign, ...params);
-        }
+        };
         params = [done, ...params];
       }
       this._emitter.emit(commandName, ...params);
