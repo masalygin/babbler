@@ -4,9 +4,10 @@
   "description": "",
   "main": "./lib/index.js",
   "dependencies": {
-    "karma-chai": "^0.1.0"
+    "simple-event-emitter": "git+https://github.com/masalygin/simple-event-emitter.git"
   },
   "devDependencies": {
+    "karma-chai": "^0.1.0",
     "babel-cli": "^6.11.4",
     "babel-loader": "^6.2.4",
     "babel-polyfill": "^6.9.1",
